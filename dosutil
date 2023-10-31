@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# Author: Your Name
+# Purpose: Emulate basic DOS/Windows commands in Linux/UNIX
+# Last Revision Date: 2023-10-31
+
+# Define variables
+COMMAND="$1"
+SOURCE="$2"
+DESTINATION="$3"
+
+# Define the usage function
+usage() {
+    echo "Usage: dosutil <command> [options]"
+    echo "Supported commands:"
+    echo "  author        - Output your name"
+    echo "  type <file>   - Output the content of a file"
+    echo "  copy <source> <destination> - Copy a file"
+    echo "  ren <source> <destination>  - Rename a file"
+    echo "  move <source> <destination> - Move a file"
+    echo "  del <file>    - Delete a file without confirmation"
+    echo "  help          - Show this help message"
+    exit 1
+}
+
+# Implement DOS/Windows command emulation
+case "$COMMAND" in
+    "author")
+        echo "Your Name"
+        ;;
+
+    "type")
+        if [ -z "$SOURCE" ]; then
+            echo "Error: Please provide a file name for 'type' command."
+            usage
+        else
+            cat "$SOURCE"
+        fi
+        ;;
+
+    "copy")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'copy' command requires source and destination filenames."
+            usage
+        else
+            cp "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "ren")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'ren' command requires source and destination filenames."
+            usage
+        else
+            mv "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "move")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'move' command requires source and destination filenames."
+            usage
+        else
+            mv "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "del")
+        if [ -z "$SOURCE" ]; then
+            echo "Error: Please provide a filename for 'del' command."
+            usage
+        else
+            rm -f "$SOURCE"
+        fi
+        ;;
+
+    "help")
+        usage
+        ;;
+
+    *)
+        echo "Error: Invalid command '$COMMAND'."
+        usage
+        ;;
+esac
+
+exit 0
