@@ -1,10 +1,10 @@
-#!/bin/bash
 
-# Author: Your Name
+#!/home/singere/CNIT340-Lab3-Script
+
+# Author: Evan Singer
 # Purpose: Emulate basic DOS/Windows commands in Linux/UNIX
-# Last Revision Date: 2023-10-31
-
-# Define variables
+# Last Revision Date: 10/31/2023 at 8:13 PM
+# Variables:
 COMMAND="$1"
 SOURCE="$2"
 DESTINATION="$3"
@@ -26,7 +26,7 @@ usage() {
 # Implement DOS/Windows command emulation
 case "$COMMAND" in
     "author")
-        echo "Your Name"
+        echo "Singer, Evan"
         ;;
 
     "type")
