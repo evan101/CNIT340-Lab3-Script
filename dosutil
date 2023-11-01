@@ -11,7 +11,6 @@ DESTINATION="$3"
 
 # Define the usage function
 usage() {
-    echo "Usage: dosutil <command> [options]"
     echo "Supported commands:"
     echo "  author        - Output your name"
     echo "  type <file>   - Output the content of a file"
@@ -28,7 +27,7 @@ case "$COMMAND" in
     "author")
         echo "Singer, Evan"
         ;;
-
+#Command to print the file
     "type")
         if [ -z "$SOURCE" ]; then
             echo "Error: Please provide a file name for 'type' command."
@@ -37,7 +36,7 @@ case "$COMMAND" in
             cat "$SOURCE"
         fi
         ;;
-
+#Command to copy the file
     "copy")
         if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
             echo "Error: 'copy' command requires source and destination filenames."
@@ -46,7 +45,7 @@ case "$COMMAND" in
             cp "$SOURCE" "$DESTINATION"
         fi
         ;;
-
+#Command to rename the file
     "ren")
         if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
             echo "Error: 'ren' command requires source and destination filenames."
@@ -55,7 +54,7 @@ case "$COMMAND" in
             mv "$SOURCE" "$DESTINATION"
         fi
         ;;
-
+#Command to move the file
     "move")
         if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
             echo "Error: 'move' command requires source and destination filenames."
@@ -64,7 +63,7 @@ case "$COMMAND" in
             mv "$SOURCE" "$DESTINATION"
         fi
         ;;
-
+#Command to delete the file
     "del")
         if [ -z "$SOURCE" ]; then
             echo "Error: Please provide a filename for 'del' command."
@@ -73,7 +72,7 @@ case "$COMMAND" in
             rm -f "$SOURCE"
         fi
         ;;
-
+#Command to print the help list
     "help")
         usage
         ;;
