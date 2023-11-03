@@ -162,7 +162,7 @@ case "$COMMAND" in
     *) # For all other commands
         # Check if there is no command
         if [ -z "$COMMAND" ]; then
-            echo "Error: No command provided."
+            echo "Error: You have not provided a command."
             display_help
             exit 1
         else
