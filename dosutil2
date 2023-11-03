@@ -1,8 +1,8 @@
 #!/bin/bash
 # Script Name: dosutil
 # Purpose: Emulate basic DOS/Windows file management commands in Linux/UNIX
-# Author: Caleb Welsh
-# Last Revision Date: 2023-11-2
+# Author: Evan Singer
+# Last Revision Date: 2023-11-3
 # Variables:
 # ARG1 = Command
 # ARG2 = Source Directory or Filename
@@ -27,8 +27,6 @@ display_help() {
     echo "  help   - Output this help message"
 }
 
-
-
 # Process the command using a case statement
 case "$COMMAND" in
     author) # Output author name
@@ -38,7 +36,7 @@ case "$COMMAND" in
             display_help
             exit 1
         fi
-        echo "Welsh, Caleb"
+        echo "Singer, Evan"
         ;;
 
     type) # Output the content of the file specified in the first parameter
