@@ -1,41 +1,5 @@
 #!/bin/bash
 
-# Function to print a message and execute a command
-execute_and_report() {
-  if [ $# -lt 1 ]; then
-    echo "Usage: execute_and_report [command] [message]"
-    exit 1
-  }
-  command="$1"
-  message="$2"
-  
-  echo "UNIX command ran: $command"
-  echo
-
-  # Execute the command and capture its exit status
-  eval "$command"
-  status=$?
-
-  if [ $status -eq 0 ]; then
-    echo "Command completed successfully."
-  else
-    echo "Error: Command failed."
-    exit 1
-  fi
-}
-
-# Check if a command is provided as the first parameter
-if [ $# -lt 1 ]; then
-  echo "Usage: $0 [command] [additional arguments]"
-  exit 1
-fi
-
-# Extract the command from the first parameter
-command="$1"
-shift # Remove the command from the argument list
-
-# Define functions for each supported command
-
 # Function to verify a file's existence and type
 verify_file_or_directory() {
   if [ $# -lt 1 ]; then
@@ -77,14 +41,33 @@ execute_file_commands() {
     fi
   fi
 
+  unix_command=""
+  success_message="Command completed successfully."
+  error_message="Error: Command failed."
+
   if [ "$command" = "copy" ] || [ "$command" = "copy!" ]; then
-    execute_and_report "cp -r \"$source\" \"$destination\""
+    unix_command="cp -r \"$source\" \"$destination\""
   elif [ "$command" = "ren" ] || [ "$command" = "ren!" ]; then
-    execute_and_report "mv \"$source\" \"$destination\""
+    unix_command="mv \"$source\" \"$destination\""
   elif [ "$command" = "move" ] || [ "$command" = "move!" ]; then
-    execute_and_report "mv \"$source\" \"$destination\""
+    unix_command="mv \"$source\" \"$destination\""
   elif [ "$command" = "del" ]; then
-    execute_and_report "rm -r \"$source\""
+    unix_command="rm -r \"$source\""
+    success_message="File/directory deleted successfully."
+    error_message="Error: Deletion failed."
+  fi
+
+  echo "UNIX command ran: $unix_command"
+  echo
+
+  eval "$unix_command"
+  status=$?
+
+  if [ $status -eq 0 ]; then
+    echo "$success_message"
+  else
+    echo "$error_message"
+    exit 1
   fi
 }
 
@@ -113,7 +96,16 @@ help_message() {
   echo "help - output this help message"
 }
 
-# Execute the file verification function before running any file manipulation command
+# Main script logic
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 [command] [additional arguments]"
+  exit 1
+fi
+
+# Extract the command from the first parameter
+command="$1"
+shift # Remove the command from the argument list
+
 case "$command" in
   "copy" | "ren" | "move" | "del" | "copy!" | "ren!" | "move!")
     verify_file_or_directory "$1"
@@ -121,7 +113,7 @@ case "$command" in
     execute_file_commands "$@"
     ;;
   "author")
-    author
+    echo "Your Name: Last, First"
     ;;
   "type")
     type_file "$@"
