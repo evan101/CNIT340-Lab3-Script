@@ -1,173 +1,137 @@
 #!/bin/bash
-# Script Name: dosutil
-# Purpose: Emulate basic DOS/Windows file management commands in Linux/UNIX
-# Author: Evan Singer
-# Last Revision Date: 11/3/2023
-# Variables:
-#    ARG1 = Command
-#    ARG2 = Filename
-#    ARG3 = Destination Directory
-COMMAND=$1
-SOURCEDIR=$2
-DESTDIR=$3
-shift
 
-# Define function for displaying the help message
-help() {
-    echo "Usage: dosutil <command> [parameters]"
-    echo "Supported Commands:"
-    echo "  author - Output your name in the form last, first"
-    echo "  type   - Output the content of the file in the first parameter"
-    echo "  copy   - Copy a file"
-    echo "  ren    - Rename a file"
-    echo "  move   - Move a file"
-    echo "  del    - Delete a file (without asking for confirmation)"
-    echo "  help   - Output this help message"
+# Function to print a message and execute a command
+execute_and_report() {
+  if [ $# -lt 1 ]; then
+    echo "Usage: execute_and_report [command] [message]"
+    exit 1
+  }
+  command="$1"
+  message="$2"
+  
+  echo "UNIX command ran: $command"
+  echo
+
+  # Execute the command and capture its exit status
+  eval "$command"
+  status=$?
+
+  if [ $status -eq 0 ]; then
+    echo "Command completed successfully."
+  else
+    echo "Error: Command failed."
+    exit 1
+  fi
 }
 
-# Processes the command with a case statement
-case "$COMMAND" in
-    author) # prints author's name
-        if [ $# -gt 0 ]; then
-            echo "Error: There are too many arguments for the 'author' command."
-            help
-            exit 1
-        fi
-        echo "Singer, Evan"
-        ;;
+# Check if a command is provided as the first parameter
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 [command] [additional arguments]"
+  exit 1
+fi
 
-    type) # Output the content of the file specified in the first parameter
-        # Check if a filename is provided
-        if [ $# -eq 0 ]; then
-            echo "Error: The filename is missing for the 'type' command."
-            help
-            exit 1
-        fi
-        # Check if the filename does not exist
-        if [ ! -e "$SOURCEDIR" ]; then
-            echo "Error: There is no such file or directory for the 'type' command."
-            help
-            exit 1
-        fi
-        # Check if there is more than one argument
-        if [ $# -gt 1 ]; then
-            echo "Error: There are too many arguments for the 'type' command."
-            help
-            exit 1
-        fi
-        cat "$SOURCEDIR"
-        ;;
+# Extract the command from the first parameter
+command="$1"
+shift # Remove the command from the argument list
 
-    copy) # Copy a file from the first parameter to the second parameter
-        # Check if the source and destination file was provided
-        if [ $# -lt 2 ]; then
-            echo "Error: There is a missing source or destination filename for the 'copy' command."
-            help
-            exit 1
-        fi
-        # Check if the source directory does not exist
-        if [ ! -e "$SOURCEDIR" ]; then
-            echo "Error: There is no such source file or directory for the 'copy' command."
-            help
-            exit 1
-        fi
-        # Check if there is more than two arguments
-        if [ $# -gt 2 ]; then
-            echo "Error: There are too many arguments for the 'copy' command."
-            help
-            exit 1
-        fi
-        cp "$SOURCEDIR" "$DESTDIR"
-        ;;
+# Define functions for each supported command
 
-    ren) # Rename a file from the first parameter to the second parameter
-        # Check if the source and destination file was provided
-        if [ $# -lt 2 ]; then
-            echo "Error: There is a Missing source or destination filename for the 'ren' command."
-            help
-            exit 1
-        fi
-        # Check if the source directory does not exist
-        if [ ! -e "$SOURCEDIR" ]; then
-            echo "Error: There is no such source file or directory for the 'ren' command."
-            help
-            exit 1
-        fi
-        # Check if there is more than two arguments
-        if [ $# -gt 2 ]; then
-            echo "Error: There are too many arguments for the 'ren' command."
-            help
-            exit 1
-        fi
-        mv "$SOURCEDIR" "$DESTDIR"
-        ;;
+# Function to verify a file's existence and type
+verify_file_or_directory() {
+  if [ $# -lt 1 ]; then
+    echo "Usage: verify_file_or_directory [filename or directory]"
+    exit 1
+  }
+  target="$1"
+  if [ -e "$target" ]; then
+    if [ -f "$target" ]; then
+      echo "File '$target' exists and is a regular file."
+    elif [ -d "$target" ]; then
+      echo "Directory '$target' exists."
+    else
+      echo "The target '$target' exists but is of an unknown type."
+      exit 1
+    fi
+  else {
+    echo "The target '$target' does not exist."
+    exit 1
+  }
+}
 
-    move) # Moves file from first to second parameter
-        # Checks if source and destination file provided
-        if [ $# -lt 2 ]; then
-            echo "Error: There is a missing source or destination filename for the 'move' command."
-            help
-            exit 1
-        fi
-        # Checks if the source directory exists
-        if [ ! -e "$SOURCEDIR" ]; then
-            echo "Error: There is no such source file or directory for the 'move' command."
-            help
-            exit 1
-        fi
-        # Checks for more than two arguments
-        if [ $# -gt 2 ]; then
-            echo "Error: There are too many arguments for the 'move' command."
-            help
-            exit 1
-        fi
-        mv "$SOURCEDIR" "$DESTDIR"
-        ;;
+# Function to execute UNIX commands for file manipulation and verify success
+execute_file_commands() {
+  if [ $# -lt 2 ]; then
+    echo "Usage: execute_file_commands [source] [destination]"
+    exit 1
+  }
+  source="$1"
+  destination="$2"
+  verify_file_or_directory "$source"
+  verify_file_or_directory "$destination"
+  if [ -e "$destination" ]; then
+    if [ "$command" = "copy!" ] || [ "$command" = "ren!" ] || [ "$command" = "move!" ]; then
+      echo "Destination '$destination' already exists. Overwriting..."
+    else
+      echo "Error: Destination '$destination' already exists. Overwriting is not allowed."
+      exit 1
+    fi
+  fi
 
-    del) # Deletes a file (no confirmation needed)
-        # Check if a filename is provided
-        if [ $# -eq 0 ]; then
-            echo "Error: The filename for 'del' command is missing."
-            help
-            exit 1
-        fi
-        # Check if filename exists
-        if [ ! -e "$SOURCEDIR" ]; then
-            echo "Error: There is no file or directory for 'del' command."
-            help
-            exit 1
-        fi
-        # Check if there is more than one argument
-        if [ $# -gt 1 ]; then
-            echo "Error: There are too many arguments for 'del' command."
-            help
-            exit 1
-        fi
-        rm -f "$SOURCEDIR"
-        ;;
+  if [ "$command" = "copy" ] || [ "$command" = "copy!" ]; then
+    execute_and_report "cp -r \"$source\" \"$destination\""
+  elif [ "$command" = "ren" ] || [ "$command" = "ren!" ]; then
+    execute_and_report "mv \"$source\" \"$destination\""
+  elif [ "$command" = "move" ] || [ "$command" = "move!" ]; then
+    execute_and_report "mv \"$source\" \"$destination\""
+  elif [ "$command" = "del" ]; then
+    execute_and_report "rm -r \"$source\""
+  fi
+}
 
-    help) # Ouputs help function
-        # Check if there is an argument
-        if [ $# -gt 0 ]; then
-            echo "Error: There are too many arguments for 'help' command."
-            help
-            exit 1
-        fi
-        help
-        ;;
+# Function to output the content of a file
+type_file() {
+  if [ $# -lt 1 ]; then
+    echo "Usage: $0 type [filename]"
+    exit 1
+  }
+  filename="$1"
+  cat "$filename"
+}
 
-    *) # Check if there is no command
-        if [ -z "$COMMAND" ]; then
-            echo "Error: You have not provided a command."
-            help
-            exit 1
-        else
-            #Display help message
-            echo "Error: Invalid command '$COMMAND'"
-            help
-            exit 1
-        fi
-        ;;
+# Function to output a help message
+help_message() {
+  echo "Supported commands:"
+  echo "author - output your name in the form last, first"
+  echo "type [filename] - output the content of the file"
+  echo "copy [source] [destination] - copy a file or directory"
+  echo "ren [oldname] [newname] - rename a file or directory"
+  echo "move [source] [destination] - move a file or directory"
+  echo "del [filename or directory] - delete a file or directory without confirmation"
+  echo "copy! [source] [destination] - copy a file or directory with overwriting"
+  echo "ren! [oldname] [newname] - rename a file or directory with overwriting"
+  echo "move! [source] [destination] - move a file or directory with overwriting"
+  echo "help - output this help message"
+}
+
+# Execute the file verification function before running any file manipulation command
+case "$command" in
+  "copy" | "ren" | "move" | "del" | "copy!" | "ren!" | "move!")
+    verify_file_or_directory "$1"
+    verify_file_or_directory "$2"
+    execute_file_commands "$@"
+    ;;
+  "author")
+    author
+    ;;
+  "type")
+    type_file "$@"
+    ;;
+  "help")
+    help_message
+    ;;
+  *)
+    echo "Invalid command: $command"
+    help_message
+    exit 1
+    ;;
 esac
-
-exit 0
