@@ -1,129 +1,174 @@
 #!/bin/bash
 
-# Function to verify a file's existence and type
-verify_file_or_directory() {
-  if [ $# -lt 1 ]; then
-    echo "Usage: verify_file_or_directory [filename or directory]"
+# Author: Evan Singer
+# Purpose: Emulate basic DOS/Windows commands in Linux/UNIX with improved structure
+# Last Revision Date: 8/11/2023
+
+# Define variables
+COMMAND="$1"
+SOURCE="$2"
+DESTINATION="$3"
+
+# Define the usage function
+usage() {
+    echo "Usage: dosutil <command> [options]"
+    echo "Supported commands:"
+    echo "  author        - Output your name"
+    echo "  type <file>   - Output the content of a file"
+    echo "  copy <source> <destination> - Copy a file or directory"
+    echo "  ren <source> <destination>  - Rename a file or directory"
+    echo "  move <source> <destination> - Move a file or directory"
+    echo "  del <file>    - Delete a file or directory without confirmation"
+    echo "  help          - Show this help message"
     exit 1
-  }
-  target="$1"
-  if [ -e "$target" ]; then
-    if [ -f "$target" ]; then
-      echo "File '$target' exists and is a regular file."
-    elif [ -d "$target" ]; then
-      echo "Directory '$target' exists."
+}
+
+# Define a function to check if a file or directory exists
+file_exists() {
+    if [ -e "$1" ]; then
+        if [ -d "$1" ]; then
+            echo "Directory"
+        else
+            echo "File"
+        fi
     else
-      echo "The target '$target' exists but is of an unknown type."
-      exit 1
+        echo "Not Found"
     fi
-  else {
-    echo "The target '$target' does not exist."
-    exit 1
-  }
 }
 
-# Function to execute UNIX commands for file manipulation and verify success
-execute_file_commands() {
-  if [ $# -lt 2 ]; then
-    echo "Usage: execute_file_commands [source] [destination]"
-    exit 1
-  }
-  source="$1"
-  destination="$2"
-  verify_file_or_directory "$source"
-  verify_file_or_directory "$destination"
-  if [ -e "$destination" ]; then
-    if [ "$command" = "copy!" ] || [ "$command" = "ren!" ] || [ "$command" = "move!" ]; then
-      echo "Destination '$destination' already exists. Overwriting..."
+# Function to verify source
+verify_source() {
+    local source="$1"
+
+    local source_type="$(file_exists "$source")"
+
+    if [ "$source_type" == "Not Found" ]; then
+        echo "Error: Source file/directory '$source' not found."
+        exit 1
+    fi
+}
+
+# Function to verify destination
+verify_dest() {
+    local destination="$1"
+
+    local destination_type="$(file_exists "$destination")"
+
+    if [ -n "$destination" ] && [ "$destination_type" == "Not Found" ]; then
+        echo "Error: Destination file/directory '$destination' not found."
+        exit 1
+    fi
+
+    if [ -n "$destination" ] && [ "$destination_type" != "Not Found" ]; then
+        echo "Error: Destination file/directory '$destination' already exists."
+        exit 1
+    fi
+}
+
+# Function to verify that the destination doesn't exist
+verify_no_dest() {
+    local destination="$1"
+
+    local destination_type="$(file_exists "$destination")"
+
+    if [ "$destination_type" != "Not Found" ]; then
+        echo "Error: Destination file/directory '$destination' already exists."
+        exit 1
+    fi
+}
+
+
+# Define a function to execute UNIX commands and verify their success
+run_command() {
+    local command="$1"
+    local source="$2"
+    local destination="$3"
+
+    local source_type="$(file_exists "$source")"
+    local destination_type="$(file_exists "$destination")"
+
+    # Display the UNIX command about to be executed
+    echo
+    echo "UNIX command ran: $command $source $destination"
+    echo
+
+    # Execute the UNIX command
+    eval "$command $source $destination"
+
+    if [ $? -eq 0 ]; then
+        echo "Command completed successfully."
     else
-      echo "Error: Destination '$destination' already exists. Overwriting is not allowed."
-      exit 1
+        echo "Command failed to execute."
     fi
-  fi
-
-  unix_command=""
-  success_message="Command completed successfully."
-  error_message="Error: Command failed."
-
-  if [ "$command" = "copy" ] || [ "$command" = "copy!" ]; then
-    unix_command="cp -r \"$source\" \"$destination\""
-  elif [ "$command" = "ren" ] || [ "$command" = "ren!" ]; then
-    unix_command="mv \"$source\" \"$destination\""
-  elif [ "$command" = "move" ] || [ "$command" = "move!" ]; then
-    unix_command="mv \"$source\" \"$destination\""
-  elif [ "$command" = "del" ]; then
-    unix_command="rm -r \"$source\""
-    success_message="File/directory deleted successfully."
-    error_message="Error: Deletion failed."
-  fi
-
-  echo "UNIX command ran: $unix_command"
-  echo
-
-  eval "$unix_command"
-  status=$?
-
-  if [ $status -eq 0 ]; then
-    echo "$success_message"
-  else
-    echo "$error_message"
-    exit 1
-  fi
 }
 
-# Function to output the content of a file
-type_file() {
-  if [ $# -lt 1 ]; then
-    echo "Usage: $0 type [filename]"
-    exit 1
-  }
-  filename="$1"
-  cat "$filename"
-}
+# Implement DOS/Windows command emulation
+case "$COMMAND" in
+    "author")
+        echo "Evan Singer"
+        ;;
 
-# Function to output a help message
-help_message() {
-  echo "Supported commands:"
-  echo "author - output your name in the form last, first"
-  echo "type [filename] - output the content of the file"
-  echo "copy [source] [destination] - copy a file or directory"
-  echo "ren [oldname] [newname] - rename a file or directory"
-  echo "move [source] [destination] - move a file or directory"
-  echo "del [filename or directory] - delete a file or directory without confirmation"
-  echo "copy! [source] [destination] - copy a file or directory with overwriting"
-  echo "ren! [oldname] [newname] - rename a file or directory with overwriting"
-  echo "move! [source] [destination] - move a file or directory with overwriting"
-  echo "help - output this help message"
-}
+    "type")
+        if [ -z "$SOURCE" ]; then
+            echo "Error: Please provide a file name for 'type' command."
+            usage
+        else
+            verify_source "$SOURCE"
+            cat "$SOURCE"
+        fi
+        ;;
 
-# Main script logic
-if [ $# -lt 1 ]; then
-  echo "Usage: $0 [command] [additional arguments]"
-  exit 1
-fi
+    "copy")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'copy' command requires source and destination filenames."
+            usage
+        else
+            verify_source "$SOURCE"
+            verify_no_dest "$DESTINATION"
+            run_command "cp" "$SOURCE" "$DESTINATION"
+        fi
+        ;;
 
-# Extract the command from the first parameter
-command="$1"
-shift # Remove the command from the argument list
+    "ren")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'ren' command requires source and destination filenames."
+            usage
+        else
+            verify_source "$SOURCE"
+            verify_no_dest "$DESTINATION"
+            run_command "mv" "$SOURCE" "$DESTINATION"
+        fi
+        ;;
 
-case "$command" in
-  "copy" | "ren" | "move" | "del" | "copy!" | "ren!" | "move!")
-    verify_file_or_directory "$1"
-    verify_file_or_directory "$2"
-    execute_file_commands "$@"
-    ;;
-  "author")
-    echo "Your Name: Last, First"
-    ;;
-  "type")
-    type_file "$@"
-    ;;
-  "help")
-    help_message
-    ;;
-  *)
-    echo "Invalid command: $command"
-    help_message
-    exit 1
-    ;;
+    "move")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'move' command requires source and destination filenames."
+            usage
+        else
+            verify_source "$SOURCE"
+            verify_no_dest "$DESTINATION"
+            run_command "mv" "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "del")
+        if [ -z "$SOURCE" ]; then
+            echo "Error: Please provide a filename for 'del' command."
+            usage
+        else
+            verify_source "$SOURCE"
+            run_command "rm -r" "$SOURCE"
+        fi
+        ;;
+
+    "help")
+        usage
+        ;;
+
+    *)
+        echo "Error: Invalid command '$COMMAND'."
+        usage
+        ;;
 esac
+
+exit 0
