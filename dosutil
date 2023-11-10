@@ -188,7 +188,7 @@ case "$COMMAND" in
             help
         else
             check_source "$SOURCE"
-            check_no_destination "$DESTINATION"
+            check_destination "$DESTINATION"
             run_cmd "cp -f" "$SOURCE" "$DESTINATION"
         fi
         ;;
@@ -199,7 +199,7 @@ case "$COMMAND" in
             help
         else
             check_source "$SOURCE"
-            check_no_destination "$DESTINATION"
+            check_destination "$DESTINATION"
             run_cmd "mv -f" "$SOURCE" "$DESTINATION"
         fi
         ;;
@@ -210,7 +210,7 @@ case "$COMMAND" in
             help
         else
             check_source "$SOURCE"
-            check_no_destination "$DESTINATION"
+            check_destination "$DESTINATION"
             run_cmd "mv -f" "$SOURCE" "$DESTINATION"
         fi
         ;;
