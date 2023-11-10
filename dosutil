@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Disable history expansion
+set +H
+
 # Script Name: dosutil
 # Purpose: Emulate basic DOS/Windows file management commands in Linux/UNIX
 # Author: Evan Singer
@@ -21,8 +24,8 @@ help() {
     echo "  move <source> <destination> - Move a file or directory"
     echo "  del <file>    - Delete a file or directory (without confirmation)"
     echo "  copy! <source> <destination> - Copy and overwrite a file or directory"
-    echo "  move! <source> <destination> - Move and overwrite a file or directory"
     echo "  ren! <source> <destination>  - Rename and overwrite a file or directory"
+    echo "  move! <source> <destination> - Move and overwrite a file or directory"
     echo "  help          - Show this help message"
     exit 1
 }
