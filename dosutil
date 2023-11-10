@@ -1,191 +1,227 @@
 #!/bin/bash
+
 # Script Name: dosutil
 # Purpose: Emulate basic DOS/Windows file management commands in Linux/UNIX
 # Author: Evan Singer
-# Last Revision Date: 11/8/2023
-# Variables:
-#    ARG1 = Command
-#    ARG2 = Filename
-#    ARG3 = Destination Directory
-COMMAND=$1
-SOURCEDIR=$2
-DESTDIR=$3
-shift
+# Last Revision Date: 11/9/2023
 
-# Define function for displaying the help message
+# Defines the variables
+COMMAND="$1"
+SOURCE="$2"
+DESTINATION="$3"
+
+# Define the usage function
 help() {
-    echo "Usage: dosutil <command> [parameters]"
-    echo "Supported Commands:"
-    echo "  author - Output your name in the form last, first"
-    echo "  type   - Output the content of the file in the first parameter"
-    echo "  copy   - Copy a file or directory"
-    echo "  ren    - Rename a file or directory"
-    echo "  move   - Move a file or directory"
-    echo "  del    - Delete a file or directory (without asking for confirmation)"
-    echo "  help   - Output this help message"
+    echo "Usage: dosutil <command> [options]"
+    echo "Supported commands:"
+    echo "  author        - Output your name in the form last, first"
+    echo "  type <file>   - Output the content of the file in the first parameter"
+    echo "  copy <source> <destination> - Copy a file or directory"
+    echo "  ren <source> <destination>  - Rename a file or directory"
+    echo "  move <source> <destination> - Move a file or directory"
+    echo "  del <file>    - Delete a file or directory (without confirmation)"
+    echo "  copy! <source> <destination> - Copy and overwrite a file or directory"
+    echo "  move! <source> <destination> - Move and overwrite a file or directory"
+    echo "  ren! <source> <destination>  - Rename and overwrite a file or directory"
+    echo "  help          - Show this help message"
+    exit 1
 }
 
-# Function to execute UNIX file manipulation commands
-execute_command() {
-    echo ""
-    echo "UNIX command ran: $*"
-    echo ""
-    if "$@"; then
-        echo "Command executed successfully."
-    else
-        echo "Command execution failed."
-        exit 1
-    fi
-}
-
-# Function to verify file or directory existence
-verify_file() {
+# Define a function to check if a file or directory exists
+does_file_exist() {
     if [ -e "$1" ]; then
-        if [ -f "$1" ]; then
-            echo "File exists: $1"
-        elif [ -d "$1" ]; then
-            echo "Directory exists: $1"
+        if [ -d "$1" ]; then
+            echo "Directory"
+        else
+            echo "File"
         fi
     else
-        echo "Error: File or directory not found: $1"
+        echo "Not Found"
+    fi
+}
+
+# Function to verify source
+check_source() {
+    local source="$1"
+
+    local source_type="$(does_file_exist "$source")"
+
+    if [ "$source_type" == "Not Found" ]; then
+        echo "Error: Source file/directory '$source' not found."
         exit 1
     fi
 }
 
-# Processes the command with a case statement
+# Function to verify destination
+check_destination() {
+    local destination="$1"
+
+    local destination_type="$(does_file_exist "$destination")"
+
+    if [ -n "$destination" ] && [ "$destination_type" == "Not Found" ]; then
+        echo "Error: Destination file/directory '$destination' not found."
+        exit 1
+    fi
+
+    if [ -n "$destination" ] && [ "$destination_type" != "Not Found" ]; then
+        echo "Error: Destination file/directory '$destination' already exists."
+        exit 1
+    fi
+}
+
+# Function to verify that the destination doesn't exist
+check_no_destination() {
+    local destination="$1"
+
+    local destination_type="$(does_file_exist "$destination")"
+
+    if [ "$destination_type" != "Not Found" ]; then
+        echo "Error: Destination file/directory '$destination' already exists."
+        exit 1
+    fi
+}
+
+# Function to verify overwrite conditions
+check_overwrite() {
+    local destination="$1"
+    local overwrite="$2"
+
+    if [ "$overwrite" != "true" ]; then
+        local destination_type="$(does_file_exist "$destination")"
+
+        if [ "$destination_type" != "Not Found" ]; then
+            echo "Error: Destination file/directory '$destination' already exists. Use '!' parameter to overwrite."
+            exit 1
+        fi
+    fi
+}
+
+# Define a function to execute UNIX commands and verify their success
+run_cmd() {
+    local command="$1"
+    local source="$2"
+    local destination="$3"
+
+    local source_type="$(does_file_exist "$source")"
+    local destination_type="$(does_file_exist "$destination")"
+
+    # Display the UNIX command about to be executed
+    echo
+    echo "UNIX command ran: $command $source $destination"
+    echo
+
+    # Execute the UNIX command
+    eval "$command $source $destination"
+
+    if [ $? -eq 0 ]; then
+        echo "Command completed successfully."
+    else
+        echo "Command failed to execute."
+    fi
+}
+
+# Implement DOS/Windows command emulation
 case "$COMMAND" in
-    author)
-        if [ $# -gt 0 ]; then
-            echo "Error: There are too many arguments for the 'author' command."
-            help
-            exit 1
-        fi
-        echo "Singer, Evan"
+    "author")
+        echo "Evan Singer"
         ;;
 
-    type)
-        if [ $# -eq 0 ]; then
-            echo "Error: The filename is missing for the 'type' command."
+    "type")
+        if [ -z "$SOURCE" ]; then
+            echo "Error: Please provide a file name for 'type' command."
             help
-            exit 1
-        fi
-        verify_file "$SOURCEDIR"
-        if [ $# -gt 1 ]; then
-            echo "Error: There are too many arguments for the 'type' command."
-            help
-            exit 1
-        fi
-        cat "$SOURCEDIR"
-        ;;
-
-    copy)
-        if [ $# -lt 2 ]; then
-            echo "Error: There is a missing source or destination filename for the 'copy' command."
-            help
-            exit 1
-        fi
-        verify_file "$SOURCEDIR"
-        verify_file "$DESTDIR"
-        if [ -e "$DESTDIR" ]; then
-            echo "Error: Destination file or directory already exists. Use -o to overwrite."
-            exit 1
-        fi
-        if [ $# -gt 2 ]; then
-            if [ "$4" == "-o" ]; then
-                execute_command cp -r "$SOURCEDIR" "$DESTDIR"
-            else
-                echo "Error: There are too many arguments for the 'copy' command."
-                help
-                exit 1
-            fi
         else
-            execute_command cp -r "$SOURCEDIR" "$DESTDIR"
+            check_source "$SOURCE"
+            cat "$SOURCE"
         fi
         ;;
 
-    ren)
-        if [ $# -lt 2 ]; then
-            echo "Error: There is a missing source or destination filename for the 'ren' command."
+    "copy")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'copy' command requires source and destination filenames."
             help
-            exit 1
-        fi
-        verify_file "$SOURCEDIR"
-        verify_file "$DESTDIR"
-        if [ -e "$DESTDIR" ]; then
-            echo "Error: Destination file or directory already exists. Use -o to overwrite."
-            exit 1
-        fi
-        if [ $# -gt 2 ]; then
-            if [ "$4" == "-o" ]; then
-                execute_command mv "$SOURCEDIR" "$DESTDIR"
-            else
-                echo "Error: There are too many arguments for the 'ren' command."
-                help
-                exit 1
-            fi
         else
-            execute_command mv "$SOURCEDIR" "$DESTDIR"
+            check_source "$SOURCE"
+            check_no_destination "$DESTINATION"
+            check_overwrite "$DESTINATION" "false"
+            run_cmd "cp" "$SOURCE" "$DESTINATION"
         fi
         ;;
 
-    move)
-        if [ $# -lt 2 ]; then
-            echo "Error: There is a missing source or destination filename for the 'move' command."
+    "ren")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'ren' command requires source and destination filenames."
             help
-            exit 1
-        fi
-        verify_file "$SOURCEDIR"
-        verify_file "$DESTDIR"
-        if [ -e "$DESTDIR" ]; then
-            echo "Error: Destination file or directory already exists. Use -o to overwrite."
-            exit 1
-        fi
-        if [ $# -gt 2 ]; then
-            if [ "$4" == "-o" ]; then
-                execute_command mv "$SOURCEDIR" "$DESTDIR"
-            else
-                echo "Error: There are too many arguments for the 'move' command."
-                help
-                exit 1
-            fi
         else
-            execute_command mv "$SOURCEDIR" "$DESTDIR"
+            check_source "$SOURCE"
+            check_no_destination "$DESTINATION"
+            check_overwrite "$DESTINATION" "false"
+            run_cmd "mv" "$SOURCE" "$DESTINATION"
         fi
         ;;
 
-    del)
-        if [ $# -eq 0 ]; then
-            echo "Error: The filename for 'del' command is missing."
+    "move")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'move' command requires source and destination filenames."
             help
-            exit 1
+        else
+            check_source "$SOURCE"
+            check_no_destination "$DESTINATION"
+            check_overwrite "$DESTINATION" "false"
+            run_cmd "mv" "$SOURCE" "$DESTINATION"
         fi
-        verify_file "$SOURCEDIR"
-        if [ $# -gt 1 ]; then
-            echo "Error: There are too many arguments for 'del' command."
-            help
-            exit 1
-        fi
-        execute_command rm -rf "$SOURCEDIR"
         ;;
 
-    help)
-        if [ $# -gt 0 ]; then
-            echo "Error: There are too many arguments for 'help' command."
+    "del")
+        if [ -z "$SOURCE" ]; then
+            echo "Error: Please provide a filename for 'del' command."
             help
-            exit 1
+        else
+            check_source "$SOURCE"
+            run_cmd "rm -r" "$SOURCE"
         fi
+        ;;
+
+    "copy!")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'copy!' command requires source and destination filenames."
+            help
+        else
+            check_source "$SOURCE"
+            check_no_destination "$DESTINATION"
+            run_cmd "cp -f" "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "ren!")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'ren!' command requires source and destination filenames."
+            help
+        else
+            check_source "$SOURCE"
+            check_no_destination "$DESTINATION"
+            run_cmd "mv -f" "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "move!")
+        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
+            echo "Error: 'move!' command requires source and destination filenames."
+            help
+        else
+            check_source "$SOURCE"
+            check_no_destination "$DESTINATION"
+            run_cmd "mv -f" "$SOURCE" "$DESTINATION"
+        fi
+        ;;
+
+    "help")
         help
         ;;
 
     *)
-        if [ -z "$COMMAND" ]; then
-            echo "Error: You have not provided a command."
-            help
-            exit 1
-        else
-            echo "Error: Invalid command '$COMMAND'"
-            help
-            exit 1
+        echo "Error: Invalid command '$COMMAND'."
+        help
         ;;
 esac
 
