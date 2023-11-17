@@ -32,7 +32,7 @@ does_file_exist() {
             echo "File"
         fi
     else
-        echo "Not Found"
+        echo "File Not Found"
     fi
 }
 
@@ -81,7 +81,7 @@ check_no_destination() {
 interactive_mode() {
     local files=($(ls))
 	
-	PS3="Select an option for sorting: "
+	sorting_function="Select an option for sorting: "
     select sort_option in "Name" "Age" "Size" "None"; do
         case $sort_option in
             "Name")
@@ -105,10 +105,10 @@ interactive_mode() {
         esac
     done
 	
-    PS3="Select a file or directory: "
+    sorting_function="Select a file or directory: "
     select file in "${files[@]}"; do
         if [ -n "$file" ]; then
-            PS3="Select a command: "
+            sorting_function="Select a command: "
             select cmd in "type" "copy" "ren" "del" "move" "help" "copy!" "move!" "ren!"; do
                 case $cmd in
                     "type"|"del"|"help")
@@ -147,9 +147,9 @@ run_cmd() {
     eval "$command $source $destination"
 
     if [ $? -eq 0 ]; then
-        echo "Command completed successfully."
+        echo "The command completed successfully."
     else
-        echo "Command failed to execute."
+        echo "The command failed to execute."
     fi
 }
 
@@ -177,7 +177,7 @@ function handle_cmd() {
 
         "copy")
             if [ -z "$source" ] || [ -z "$destination" ]; then
-                echo "Error: 'copy' command requires source and destination filenames."
+                echo "Error: 'copy' command requires a source and a destination filenames."
                 usage
             else
                 check_source "$source"
@@ -188,7 +188,7 @@ function handle_cmd() {
 
         "ren")
             if [ -z "$source" ] || [ -z "$destination" ]; then
-                echo "Error: 'ren' command requires source and destination filenames."
+                echo "Error: 'ren' command requires a source and a destination filenames."
                 usage
             else
                 check_source "$source"
@@ -199,7 +199,7 @@ function handle_cmd() {
 
         "move")
             if [ -z "$source" ] || [ -z "$destination" ]; then
-                echo "Error: 'move' command requires source and destination filenames."
+                echo "Error: 'move' command requires a source and a destination filenames."
                 usage
             else
                 check_source "$source"
@@ -210,7 +210,7 @@ function handle_cmd() {
 
         "del")
             if [ -z "$source" ]; then
-                echo "Error: Please provide a filename for 'del' command."
+                echo "Error: Please provide a filename for the 'del' command."
                 usage
             else
                 check_source "$source"
@@ -224,7 +224,7 @@ function handle_cmd() {
 		
 		"move!")
             if [ -z "$source" ] || [ -z "$destination" ]; then
-                echo "Error: 'move!' command requires source and destination filenames."
+                echo "Error: 'move!' command requires a source and a destination filenames."
                 usage
             else
                 check_source "$source"
@@ -234,7 +234,7 @@ function handle_cmd() {
 			
         "ren!")
             if [ -z "$source" ] || [ -z "$destination" ]; then
-                echo "Error: 'ren!' command requires source and destination filenames."
+                echo "Error: 'ren!' command requires a source and a destination filenames."
                 usage
             else
                 check_source "$source"
@@ -244,7 +244,7 @@ function handle_cmd() {
 			
         "copy!")
             if [ -z "$source" ] || [ -z "$destination" ]; then
-                echo "Error: 'copy!' command requires source and destination filenames."
+                echo "Error: 'copy!' command requires a source and a destination filenames."
                 usage
             else
                 check_source "$source"
