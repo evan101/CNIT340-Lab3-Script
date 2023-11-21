@@ -1,30 +1,36 @@
 #!/bin/bash
 
-# Script Name: dosutil
-# Purpose: Emulate basic DOS/Windows file management commands in Linux/UNIX
 # Author: Evan Singer
-# Last Revision Date: 11/9/2023
+# Purpose: Emulate basic DOS/Windows commands in Linux/UNIX with improved structure
+# Last Revision Date: 11/17/2023
 
-# Defines the variables
+# Define variables
 COMMAND="$1"
 SOURCE="$2"
 DESTINATION="$3"
 
+# Make script parameters case-insensitive
+shopt -s nocasematch
+
 # Define the usage function
-help() {
+usage() {
     echo "Usage: dosutil <command> [options]"
     echo "Supported commands:"
-    echo "  author        - Output your name in the form last, first"
-    echo "  type <file>   - Output the content of the file in the first parameter"
+    echo "  author        - Output your name"
+    echo "  type <file>   - Output the content of a file"
     echo "  copy <source> <destination> - Copy a file or directory"
     echo "  ren <source> <destination>  - Rename a file or directory"
     echo "  move <source> <destination> - Move a file or directory"
-    echo "  del <file>    - Delete a file or directory (without confirmation)"
+    echo "  del <file>    - Delete a file or directory without confirmation"
     echo "  help          - Show this help message"
+    echo "  chgroupto <source> <group>  - Change group ownership of a file or directory"
+    echo "  chmod <source> <mode>       - Change permissions of a file or directory"
+    echo "  head <file>   - Display the first lines of a file"
+    echo "  tail <file>   - Display the last lines of a file"
     exit 1
 }
 
-# Define a function to check if a file or directory exists
+# Checks if a file or directory exists
 does_file_exist() {
     if [ -e "$1" ]; then
         if [ -d "$1" ]; then
@@ -37,49 +43,106 @@ does_file_exist() {
     fi
 }
 
-# Function to verify source
+# Function that verifies the source of the file
 check_source() {
     local source="$1"
 
     local source_type="$(does_file_exist "$source")"
 
     if [ "$source_type" == "Not Found" ]; then
-        echo "Error: Source file/directory '$source' not found."
+        echo "Error: Source file '$source' not found."
         exit 1
     fi
 }
 
-# Function to verify destination
+# Function that verifies the destination of the file
 check_destination() {
     local destination="$1"
 
     local destination_type="$(does_file_exist "$destination")"
 
     if [ -n "$destination" ] && [ "$destination_type" == "Not Found" ]; then
-        echo "Error: Destination file/directory '$destination' not found."
+        echo "Error: Destination file '$destination' not found."
         exit 1
     fi
 
     if [ -n "$destination" ] && [ "$destination_type" != "Not Found" ]; then
-        echo "Error: Destination file/directory '$destination' already exists."
+        echo "Error: Destination file '$destination' already exists."
         exit 1
     fi
 }
 
-# Function to verify that the destination doesn't exist
+# Function that verifies the destination file is not present
 check_no_destination() {
     local destination="$1"
 
     local destination_type="$(does_file_exist "$destination")"
 
     if [ "$destination_type" != "Not Found" ]; then
-        echo "Error: Destination file/directory '$destination' already exists."
+        echo "Error: Destination file '$destination' already exists."
         exit 1
     fi
 }
 
+# Interactive function
+interactive_mode() {
+    local files=($(ls))
+    local page_size=23
 
-# Define a function to execute UNIX commands and verify their success
+    for ((i = 0; i < ${#files[@]}; i += page_size)); do
+        local options=("${files[@]:i:page_size}")
+        sorting_function="Select an option for sorting: "
+        select sort_option in "Name" "Age" "Size" "None"; do
+            case $sort_option in
+                "Name")
+                    files=($(ls | sort))
+                    break
+                    ;;
+                "Age")
+                    files=($(ls -lt | awk '{print $9}'))
+                    break
+                    ;;
+                "Size")
+                    files=($(ls -lS | awk '{print $9}'))
+                    break
+                    ;;
+                "None")
+                    break
+                    ;;
+                *)
+                    echo "Invalid option."
+                    ;;
+            esac
+        done
+
+        sorting_function="Select a file or directory: "
+        PS3=" $sorting_function"
+        select file in "${options[@]}"; do
+            if [ -n "$file" ]; then
+                sorting_function="Select a command: "
+                PS3=" $sorting_function"
+                select cmd in "type" "copy" "ren" "del" "move" "help" "copy!" "move!" "ren!" "chgroupto" "chmod" "head" "tail"; do
+                    case $cmd in
+                        "type"|"del"|"help"|"head"|"tail")
+                            handle_cmd "$cmd" "$file"
+                            ;;
+                        "copy"|"ren"|"move"|"copy!"|"ren!"|"move!"|"chgroupto"|"chmod")
+                            read -p "Enter destination: " destination
+                            handle_cmd "$cmd" "$file" "$destination"
+                            ;;
+                        *)
+                            echo "Invalid command."
+                            ;;
+                    esac
+                    break
+                done
+            fi
+            break
+        done
+    done
+}
+
+# Function to execute UNIX commands
 run_cmd() {
     local command="$1"
     local source="$2"
@@ -97,79 +160,132 @@ run_cmd() {
     eval "$command $source $destination"
 
     if [ $? -eq 0 ]; then
-        echo "Command completed successfully."
+        echo "The command completed successfully."
     else
-        echo "Command failed to execute."
+        echo "The command failed to execute."
     fi
 }
 
-# Implement DOS/Windows command emulation
-case "$COMMAND" in
-    "author")
-        echo "Evan Singer"
-        ;;
+# Function to handle file manipulation commands
+handle_cmd() {
+    local command="$1"
+    local source="$2"
+    local destination="$3"
 
-    "type")
-        if [ -z "$SOURCE" ]; then
-            echo "Error: Please provide a file name for 'type' command."
-            help
-        else
-            check_source "$SOURCE"
-            cat "$SOURCE"
-        fi
-        ;;
+    case "$command" in
+        "author")
+            echo "Evan Singer"
+            ;;
 
-    "copy")
-        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
-            echo "Error: 'copy' command requires source and destination filenames."
-            help
-        else
-            check_source "$SOURCE"
-            check_no_destination "$DESTINATION"
-            run_cmd "cp" "$SOURCE" "$DESTINATION"
-        fi
-        ;;
+        "type")
+            if [ -z "$source" ]; then
+                echo "Error: Please provide a file name for 'type' command."
+                usage
+            else
+                check_source "$source"
+                cat "$source"
+            fi
+            ;;
 
-    "ren")
-        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
-            echo "Error: 'ren' command requires source and destination filenames."
-            help
-        else
-            check_source "$SOURCE"
-            check_no_destination "$DESTINATION"
-            run_cmd "mv" "$SOURCE" "$DESTINATION"
-        fi
-        ;;
+        "copy")
+            if [ -z "$source" ] || [ -z "$destination" ]; then
+                echo "Error: 'copy' command requires a source and a destination filenames."
+                usage
+            else
+                check_source "$source"
+                check_no_destination "$destination"
+                run_cmd "cp" "$source" "$destination"
+            fi
+            ;;
 
-    "move")
-        if [ -z "$SOURCE" ] || [ -z "$DESTINATION" ]; then
-            echo "Error: 'move' command requires source and destination filenames."
-            help
-        else
-            check_source "$SOURCE"
-            check_no_destination "$DESTINATION"
-            run_cmd "mv" "$SOURCE" "$DESTINATION"
-        fi
-        ;;
+        "ren")
+            if [ -z "$source" ] || [ -z "$destination" ]; then
+                echo "Error: 'ren' command requires a source and a destination filenames."
+                usage
+            else
+                check_source "$source"
+                check_no_destination "$destination"
+                run_cmd "mv" "$source" "$destination"
+            fi
+            ;;
 
-    "del")
-        if [ -z "$SOURCE" ]; then
-            echo "Error: Please provide a filename for 'del' command."
-            help
-        else
-            check_source "$SOURCE"
-            run_cmd "rm -r" "$SOURCE"
-        fi
-        ;;
+        "move")
+            if [ -z "$source" ] || [ -z "$destination" ]; then
+                echo "Error: 'move' command requires a source and a destination filenames."
+                usage
+            else
+                check_source "$source"
+                check_no_destination "$destination"
+                run_cmd "mv" "$source" "$destination"
+            fi
+            ;;
 
-    "help")
-        help
-        ;;
+        "del")
+            if [ -z "$source" ]; then
+                echo "Error: Please provide a filename for the 'del' command."
+                usage
+            else
+                check_source "$source"
+                run_cmd "rm -r" "$source"
+            fi
+            ;;
 
-    *)
-        echo "Error: Invalid command '$COMMAND'."
-        help
-        ;;
-esac
+        "chgroupto")
+            if [ -z "$source" ] || [ -z "$destination" ]; then
+                echo "Error: 'chgroupto' command requires a source and a group name."
+                usage
+            else
+                check_source "$source"
+                run_cmd "chown :$destination" "$source"
+            fi
+            ;;
+
+        "chmod")
+            if [ -z "$source" ] || [ -z "$destination" ]; then
+                echo "Error: 'chmod' command requires a source and a permission mode."
+                usage
+            else
+                check_source "$source"
+                run_cmd "chmod $destination" "$source"
+            fi
+            ;;
+
+        "head")
+            if [ -z "$source" ]; then
+                echo "Error: 'head' command requires a file name."
+                usage
+            else
+                check_source "$source"
+                run_cmd "head" "$source"
+            fi
+            ;;
+
+        "tail")
+            if [ -z "$source" ]; then
+                echo "Error: 'tail' command requires a file name."
+                usage
+            else
+                check_source "$source"
+                run_cmd "tail" "$source"
+            fi
+            ;;
+
+        "help")
+            usage
+            ;;
+
+        *)
+            echo "Error: Invalid command '$command'."
+            usage
+            ;;
+    esac
+}
+
+# DOS/Windows command emulation
+if [ -z "$COMMAND" ]; then
+    interactive_mode
+else
+    handle_cmd "$COMMAND" "$SOURCE" "$DESTINATION"
+fi
 
 exit 0
